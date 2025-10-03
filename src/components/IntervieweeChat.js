@@ -69,18 +69,32 @@ const IntervieweeChat = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [welcomeModalVisible, setWelcomeModalVisible] = useState(false);
 
-  const handleSubmitAnswer = useCallback(() => {
-    clearInterval(timerRef.current);
-    const newAnswers = candidate.answers ? [...candidate.answers] : [];
-    newAnswers[currentQuestionIndex] = answer.trim();
-    setCandidate(prev => ({ ...prev, answers: newAnswers }));
-    setAnswer("");
-    if (currentQuestionIndex === questions.length - 1) {
-      finishInterview(newAnswers);
-    } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    }
-  }, [candidate, currentQuestionIndex, answer]);
+ const finishInterview = (answers) => {
+    const score = answers.reduce((acc, a) => acc + (a ? 10 : 0), 0);
+    const summary = `Final score: ${score}. Thank you for your time!`;
+    const completedCandidate = { ...candidate, answers, score, summary };
+    setCandidate(completedCandidate);
+    setMode("DONE");
+    setWelcomeModalVisible(true);
+    message.success("Interview complete. Check interviewer dashboard.");
+    const storedCandidates = JSON.parse(localStorage.getItem("candidates") || "[]");
+    storedCandidates.push(completedCandidate);
+    localStorage.setItem("candidates", JSON.stringify(storedCandidates));
+  };
+
+const handleSubmitAnswer = useCallback(() => {
+  clearInterval(timerRef.current);
+  const newAnswers = candidate.answers ? [...candidate.answers] : [];
+  newAnswers[currentQuestionIndex] = answer.trim();
+  setCandidate(prev => ({ ...prev, answers: newAnswers }));
+  setAnswer("");
+  if (currentQuestionIndex === questions.length - 1) {
+    finishInterview(newAnswers);
+  } else {
+    setCurrentQuestionIndex(currentQuestionIndex + 1);
+  }
+}, [candidate, currentQuestionIndex, answer, finishInterview]); // Added finishInterview in dependencies
+
 
   const startTimer = useCallback(
     (seconds) => {
@@ -126,18 +140,7 @@ const IntervieweeChat = () => {
     return () => clearInterval(timerRef.current);
   }, [mode, currentQuestionIndex, startTimer]);
 
-  const finishInterview = (answers) => {
-    const score = answers.reduce((acc, a) => acc + (a ? 10 : 0), 0);
-    const summary = `Final score: ${score}. Thank you for your time!`;
-    const completedCandidate = { ...candidate, answers, score, summary };
-    setCandidate(completedCandidate);
-    setMode("DONE");
-    setWelcomeModalVisible(true);
-    message.success("Interview complete. Check interviewer dashboard.");
-    const storedCandidates = JSON.parse(localStorage.getItem("candidates") || "[]");
-    storedCandidates.push(completedCandidate);
-    localStorage.setItem("candidates", JSON.stringify(storedCandidates));
-  };
+
 
   const handleFileUpload = async (file) => {
     try {
